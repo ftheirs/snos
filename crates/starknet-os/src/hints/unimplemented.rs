@@ -26,11 +26,6 @@ pub const CALCULATE_VALUE: &str = indoc! {r#"
 };
 
 #[allow(unused)]
-pub const SET_AP_TO_SEGMENT_HASH: &str = indoc! {r#"
-    memory[ap] = to_felt_or_relocatable(bytecode_segment_structure.hash())"#
-};
-
-#[allow(unused)]
 pub const COMPUTE_NEW_Y: &str = indoc! {r#"
     value = new_y = (slope * (x - new_x) - y) % SECP256R1_P"#
 };

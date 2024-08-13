@@ -34,6 +34,7 @@ pub mod block_context;
 mod bls_field;
 mod bls_utils;
 pub mod builtins;
+mod bytecode_segment;
 mod compiled_class;
 mod deprecated_compiled_class;
 mod execute_transactions;
@@ -234,6 +235,7 @@ fn hints<S>() -> HashMap<String, HintImpl> where
     hints.insert(transaction_hash::ADDITIONAL_DATA_NEW_SEGMENT.into(), transaction_hash::additional_data_new_segment);
     hints.insert(transaction_hash::DATA_TO_HASH_NEW_SEGMENT.into(), transaction_hash::data_to_hash_new_segment);
     hints.insert(block_context::WRITE_USE_ZKG_DA_TO_MEM.into(), block_context::write_use_zkg_da_to_mem);
+    hints.insert(bytecode_segment::SET_AP_TO_SEGMENT_HASH.into(), bytecode_segment::set_ap_to_segment);
 
     hints
 }

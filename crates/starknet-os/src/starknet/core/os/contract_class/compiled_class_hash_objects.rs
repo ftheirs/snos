@@ -1,4 +1,5 @@
 use cairo_vm::Felt252;
+use starknet_crypto::{poseidon_hash_many, FieldElement};
 
 use crate::starkware_utils::commitment_tree::base_types::Length;
 
@@ -16,6 +17,20 @@ pub trait BytecodeSegmentStructure {}
 pub enum BytecodeSegmentStructureImpl {
     SegmentedNode(BytecodeSegmentedNode),
     Leaf(BytecodeLeaf),
+}
+
+impl BytecodeSegmentStructureImpl {
+    pub fn hash(&self) -> FieldElement {
+        match self {
+            BytecodeSegmentStructureImpl::SegmentedNode(node) => node.hash(),
+            BytecodeSegmentStructureImpl::Leaf(data) => {
+                // TODO: remove unwrap
+                let vec_field_elements: Vec<_> =
+                    data.data.iter().map(|value| FieldElement::from_bytes_be(&value.to_bytes_be()).unwrap()).collect();
+                poseidon_hash_many(&vec_field_elements)
+            }
+        }
+    }
 }
 
 /// Represents a child of BytecodeSegmentedNode.
@@ -36,6 +51,18 @@ pub struct BytecodeSegment {
 #[derive(Clone, Debug)]
 pub struct BytecodeSegmentedNode {
     pub segments: Vec<BytecodeSegment>,
+}
+
+impl BytecodeSegmentedNode {
+    pub fn hash(&self) -> FieldElement {
+        let felts: Vec<_> = self
+            .segments
+            .iter()
+            .flat_map(|segment| vec![FieldElement::from(segment.segment_length.0), segment.inner_structure.hash()])
+            .collect();
+
+        poseidon_hash_many(&felts)
+    }
 }
 
 /// Represents a leaf in the bytecode segment tree.
