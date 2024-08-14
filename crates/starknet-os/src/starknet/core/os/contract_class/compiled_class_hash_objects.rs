@@ -1,3 +1,4 @@
+use blockifier::execution::syscalls::hint_processor::SyscallExecutionError;
 use cairo_vm::Felt252;
 use starknet_crypto::{poseidon_hash_many, FieldElement};
 
@@ -20,16 +21,23 @@ pub enum BytecodeSegmentStructureImpl {
 }
 
 impl BytecodeSegmentStructureImpl {
-    pub fn hash(&self) -> FieldElement {
-        match self {
-            BytecodeSegmentStructureImpl::SegmentedNode(node) => node.hash(),
+    pub fn hash(&self) -> Result<FieldElement, SyscallExecutionError> {
+        let ret = match self {
+            BytecodeSegmentStructureImpl::SegmentedNode(node) => node.hash()?,
             BytecodeSegmentStructureImpl::Leaf(data) => {
-                // TODO: remove unwrap
-                let vec_field_elements: Vec<_> =
-                    data.data.iter().map(|value| FieldElement::from_bytes_be(&value.to_bytes_be()).unwrap()).collect();
-                poseidon_hash_many(&vec_field_elements)
+                let vec_field_elements: Result<Vec<_>, _> =
+                    data.data.iter().map(|value| FieldElement::from_bytes_be(&value.to_bytes_be())).collect();
+
+                match vec_field_elements {
+                    Ok(elements) => poseidon_hash_many(&elements),
+                    Err(_) => {
+                        return Err(SyscallExecutionError::InternalError("Invalid bytecode segment leaf".into()).into());
+                    }
+                }
             }
-        }
+        };
+
+        Ok(ret)
     }
 }
 
@@ -54,14 +62,14 @@ pub struct BytecodeSegmentedNode {
 }
 
 impl BytecodeSegmentedNode {
-    pub fn hash(&self) -> FieldElement {
+    pub fn hash(&self) -> Result<FieldElement, SyscallExecutionError> {
         let felts: Vec<_> = self
             .segments
             .iter()
-            .flat_map(|segment| vec![FieldElement::from(segment.segment_length.0), segment.inner_structure.hash()])
-            .collect();
+            .flat_map(|segment| vec![FieldElement::from(segment.segment_length.0), segment.inner_structure.hash()?])
+            .collect()?;
 
-        poseidon_hash_many(&felts)
+        Ok(poseidon_hash_many(&felts))
     }
 }
 
